@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Répétition espacée — Conjugaisons (Présent)</title>
+<style>
+  :root{
+    --fg:#0f172a; --muted:#475569; --card:#ffffff; --border:#e5e7eb; --shadow:0 10px 25px rgba(15,23,42,.08);
+    --primary:#f97316; --primary-2:#fb923c; --ok:#16a34a; --warn:#ef4444;
+    --card-bg:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    color:var(--fg);
+    min-height:100dvh; display:flex; align-items:center; justify-content:center;
+    background-color:#fafafa;
+    background-size:cover; background-position:center; background-repeat:no-repeat;
+    background-image:url('bg_magicien_1920x1080.png');
+  }
+  .app{width:min(1100px,96vw); padding:20px}
+  .panel{
+    position:relative; overflow:hidden;
+    background:var(--card-bg); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow);
+    padding:20px;
+  }
+  h1{margin:0 0 10px; font-weight:900}
+  p{margin:8px 0 0}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  input[type="text"]{background:#fff; border:2px solid var(--border); border-radius:12px; padding:12px 14px; font-size:17px; min-width:200px; outline:none}
+  .btn{appearance:none; border:2px solid var(--primary-2); background:var(--primary); color:#fff; padding:10px 14px; border-radius:12px; font-size:15px; cursor:pointer}
+  .btn.ghost{background:#fff; color:var(--primary)}
+  .cards{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap}
+  .chip{padding:8px 12px; border:2px solid #ffd3a6; border-radius:999px; background:#ffedd5; cursor:pointer; font-weight:800}
+  .chip.active{outline:3px solid #f59e0b}
+  .screen{display:none} .screen.active{display:block}
+  .question{font-size:24px; font-weight:900; margin:6px 0 6px}
+  .muted{color:var(--muted); font-size:14px}
+  .feedback{min-height:24px; font-size:15px}
+  .ok{color:var(--ok); font-weight:800}
+
+  /* Tableau */
+  .grid-wrap{margin-top:12px}
+  .grid-scroll{overflow:auto; border:1px solid var(--border); border-radius:12px}
+  table.grid{table-layout:fixed; min-width:720px; width:100%; border-collapse:separate; border-spacing:0}
+  .grid th,.grid td{padding:6px 8px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); text-align:center; vertical-align:middle; font-size:14px}
+  .grid th{background:#f8fafc; font-weight:900; position:sticky; top:0}
+  .grid th:first-child{width:140px}
+  .grid td,.grid th{width:96px}
+  .grid tr:last-child td{border-bottom:none}
+  .grid td:last-child,.grid th:last-child{border-right:none}
+  .cell{display:flex; align-items:center; justify-content:center; gap:6px; min-height:28px}
+
+  /* Potion progress */
+  .potions{display:flex; gap:4px; align-items:center; justify-content:center}
+  .potion{width:35px; height:35px; background-image:url('potion_magicien.png'); background-size:contain; background-repeat:no-repeat; opacity:.4; filter:drop-shadow(0 1px 1px rgba(0,0,0,.2))}
+  .potion.full{opacity:1}
+
+  /* Modals */
+  .modal{position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; z-index:999}
+  .modal.show{display:flex}
+  .modal-card{position:relative; background:#fff; color:var(--fg); border:2px solid var(--border); border-radius:16px; max-width:min(640px,92vw); padding:16px; box-shadow:var(--shadow)}
+  .modal-title{font-weight:900; margin:0 0 8px}
+  .modal-body{font-size:16px}
+  .bad{color:#dc2626; font-weight:800}
+  .good{color:#16a34a; font-weight:800}
+  .modal-actions{display:flex; gap:10px; margin-top:10px; align-items:center; justify-content:flex-end}
+  .modal input{width:100%; padding:10px 12px; border:2px solid var(--border); border-radius:10px; font-size:16px}
+
+  /* Mascotte & effets */
+  .brand{display:flex; align-items:center; gap:10px}
+  .mascot{width:40px; height:40px; object-fit:contain; filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}
+
+  /* Effet visuel central (plus long, sans flash) */
+  .fx-overlay{position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:998}
+  .fx-overlay.show{display:flex}
+  .fx-sprite{width:min(46vmin,460px); height:min(46vmin,460px); background-size:contain; background-repeat:no-repeat; background-position:center; animation:popSoft 1.4s ease}
+  @keyframes popSoft{0%{transform:scale(.85); opacity:0} 30%{transform:scale(1); opacity:1} 100%{transform:scale(1); opacity:1}}
+
+  /* Mascotte posée au bord du modal (pour erreurs) */
+  .modal-rim{position:absolute; left:50%; top:-200px; transform:translateX(-50%); width:200px; height:200px;
+    background-size:contain; background-repeat:no-repeat; background-position:center; pointer-events:none; filter:drop-shadow(0 6px 6px rgba(0,0,0,.25));}
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel" id="rootPanel" aria-live="polite">
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:6px">
+        <div class="brand">
+          <img id="mascot" class="mascot" alt="Mascotte" src="mascot_magicien_512.png" />
+          <h1 style="margin:0"> </h1>
+        </div>
+        <div class="muted" id="status"></div>
+      </div>
+
+      <section id="screen-name" class="screen active">
+        <p>Entre tes <strong>initiales</strong> :</p>
+        <form id="nameForm" style="margin-top:8px" novalidate>
+          <div class="row">
+            <input id="initials" type="text" maxlength="3" placeholder="Initiales (ex. AB)" required />
+            <button id="goName" class="btn" type="button">Continuer</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="screen-verbs" class="screen">
+        <h1>Choisis les verbes à entraîner</h1>
+        <p class="muted">Sélectionne <strong>un ou plusieurs</strong> verbes.</p>
+        <div id="verbChips" class="cards"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="goVerbs" class="btn" type="button">Lancer l’entraînement</button>
+          <button id="backToName" class="btn ghost" type="button">Retour</button>
+        </div>
+      </section>
+
+      <section id="screen-train" class="screen">
+        <div id="prompt" class="question">—</div>
+        <div class="muted">
+          Tape la <strong>forme conjuguée exacte</strong> (accents inclus). Tu peux écrire le <strong>pronom</strong> si tu veux.
+          <span id="tries" class="muted" style="margin-left:6px"></span>
+        </div>
+        <div class="row" style="align-items:center; margin-top:8px">
+          <input id="answer" class="answer" type="text" autocomplete="off" />
+          <button id="validate" class="btn" type="button">Valider</button>
+        </div>
+        <div id="feedback" class="feedback"></div>
+        <div class="progress" style="height:10px; background:transparent"><div id="bar" class="bar" style="height:100%; background:linear-gradient(90deg,#f97316,#fb923c)"></div></div>
+
+        <div class="grid-wrap">
+          <div class="grid-scroll">
+            <table class="grid" id="grid"></table>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-final" class="screen">
+        <h1>Contrôle final</h1>
+        <p class="muted" id="finalLegend">Tu vas revoir uniquement les cartes sur lesquelles tu as fait au moins une erreur.</p>
+        <div id="finalPrompt" class="question">—</div>
+        <div class="row" style="align-items:center; margin-top:8px">
+          <input id="finalAnswer" class="answer" type="text" autocomplete="off" />
+          <button id="finalValidate" class="btn" type="button">Valider</button>
+        </div>
+        <div id="finalFeedback" class="feedback"></div>
+        <div class="progress" style="height:10px; background:transparent"><div id="finalBar" class="bar" style="height:100%; background:linear-gradient(90deg,#f97316,#fb923c)"></div></div>
+      </section>
+
+      <section id="screen-report" class="screen">
+        <h1>Bilan</h1>
+        <p id="scoreLine"></p>
+        <div id="report" class="report"></div>
+        <div class="row" style="margin-top:8px">
+          <button id="download" class="btn ghost" type="button">Télécharger le rapport (.txt)</button>
+          <button id="restart" class="btn" type="button">Recommencer</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="revealModal" class="modal" aria-modal="true" role="dialog" aria-labelledby="revTitle">
+    <div class="modal-card">
+      <div id="rimReveal" class="modal-rim" aria-hidden="true"></div>
+      <h2 id="revTitle" class="modal-title">Regarde bien</h2>
+      <div class="modal-body">
+        <div id="revTyped"></div>
+        <div id="revCorrect" style="margin-top:4px"></div>
+        <div class="modal-actions">
+          <button id="revOk" class="btn" type="button">J’ai mémorisé</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="recallModal" class="modal" aria-modal="true" role="dialog" aria-labelledby="recTitle">
+    <div class="modal-card">
+      <div id="rimRecall" class="modal-rim" aria-hidden="true"></div>
+      <h2 id="recTitle" class="modal-title">À toi de jouer</h2>
+      <div class="modal-body">
+        <div id="recPrompt" style="font-weight:800; margin-bottom:6px"></div>
+        <input id="recInput" type="text" placeholder="Retape la bonne forme" />
+        <div class="modal-actions">
+          <button id="recValidate" class="btn" type="button">Valider</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="fx" class="fx-overlay"><div id="fxSprite" class="fx-sprite"></div></div>
+
+  <script>
+    (function(){
+      const PRONOUNS = ["je","tu","il/elle/on","nous","vous","ils/elles"];
+      const CONJ = {
+        "être":   {"je":"suis","tu":"es","il/elle/on":"est","nous":"sommes","vous":"êtes","ils/elles":"sont"},
+        "avoir":  {"je":"ai","tu":"as","il/elle/on":"a","nous":"avons","vous":"avez","ils/elles":"ont"},
+        "aller":  {"je":"vais","tu":"vas","il/elle/on":"va","nous":"allons","vous":"allez","ils/elles":"vont"},
+        "chanter":{"je":"chante","tu":"chantes","il/elle/on":"chante","nous":"chantons","vous":"chantez","ils/elles":"chantent"},
+        "manger": {"je":"manges","tu":"manges","il/elle/on":"mange","nous":"mangeons","vous":"mangez","ils/elles":"mangent"},
+        "commencer":{"je":"commence","tu":"commences","il/elle/on":"commence","nous":"commençons","vous":"commencez","ils/elles":"commencent"},
+        "entendre":{"je":"entends","tu":"entends","il/elle/on":"entend","nous":"entendons","vous":"entendez","ils/elles":"entendent"},
+        "rendre": {"je":"rends","tu":"rends","il/elle/on":"rend","nous":"rendons","vous":"rendez","ils/elles":"rendent"},
+        "prendre":{"je":"prends","tu":"prends","il/elle/on":"prend","nous":"prenons","vous":"prenez","ils/elles":"prennent"},
+        "mettre": {"je":"mets","tu":"mets","il/elle/on":"met","nous":"mettons","vous":"mettez","ils/elles":"mettent"},
+        "courir": {"je":"cours","tu":"cours","il/elle/on":"court","nous":"courons","vous":"courez","ils/elles":"courent"},
+        "sortir": {"je":"sors","tu":"sors","il/elle/on":"sort","nous":"sortons","vous":"sortez","ils/elles":"sortent"},
+        "dire":   {"je":"dis","tu":"dis","il/elle/on":"dit","nous":"disons","vous":"dites","ils/elles":"disent"},
+        "faire":  {"je":"fais","tu":"fais","il/elle/on":"fait","nous":"faisons","vous":"faites","ils/elles":"font"},
+        "vouloir":{"je":"veux","tu":"veux","il/elle/on":"veut","nous":"voulons","vous":"voulez","ils/elles":"veulent"},
+        "pouvoir":{"je":"peux","tu":"peux","il/elle/on":"peut","nous":"pouvons","vous":"pouvez","ils/elles":"peuvent"},
+        "finir":  {"je":"finis","tu":"finis","il/elle/on":"finit","nous":"finissons","vous":"finissez","ils/elles":"finissent"},
+        "venir":  {"je":"viens","tu":"viens","il/elle/on":"vient","nous":"venons","vous":"venez","ils/elles":"viennent"},
+        "savoir": {"je":"sais","tu":"sais","il/elle/on":"sait","nous":"savons","vous":"savez","ils/elles":"savent"},
+        "voir":   {"je":"vois","tu":"vois","il/elle/on":"voit","nous":"voyons","vous":"voyez","ils/elles":"voient"}
+      };
+      const VERB_NAMES = Object.keys(CONJ);
+    
+      let student = { initials:"" };
+      let selectedVerbs = new Set();
+      let allCards = [];
+      let totalNeeded = 0, doneCount = 0, triesCurrent = 0, currentCard = null, turn = 0;
+      let turnQueue = []; // Rétablie et utilisée pour les cartes éligibles au même tour.
+      let finalList = [], finalIndex = 0, currentIsFinal = false;
+    
+      const $ = s => document.querySelector(s);
+      const mascotEl = $("#mascot");
+    
+      const MASCOT_DEFAULT = 'mascot_magicien_512.png';
+      const MASCOT_OK = ['mascot_magicien_correct1.png','mascot_magicien_correct2.png','mascot_magicien_correct3.png','mascot_magicien_correct4.png'];
+      const MASCOT_KO = ['mascot_magicien_incorrect1.png','mascot_magicien_incorrect2.png','mascot_magicien_incorrect3.png','mascot_magicien_incorrect4.png','mascot_magicien_incorrect5.png'];
+      const SOUND_OK = ['correct_magicien.mp3','correct_magicien2.mp3','correct_magicien3.mp3','correct_magicien4.mp3'];
+      const SOUND_KO = ['incorrect_magicien.mp3','incorrect_magicien2.mp3','incorrect_magicien3.mp3','incorrect_magicien4.mp3'];
+      const POTION_IMG = 'potion_magicien.png';
+    
+      function randPick(a){ return a[Math.floor(Math.random()*a.length)]; }
+      function playSound(path){ try{ const a=new Audio(path); a.currentTime=0; a.play(); }catch(e){} }
+    
+      const fx = $("#fx"), fxSprite = $("#fxSprite");
+      function showFxWithMascot(src){
+        fxSprite.style.backgroundImage = `url('${src}')`;
+        fx.classList.add('show');
+        setTimeout(()=>fx.classList.remove('show'), 1500);
+      }
+      function setModalRim(imgUrl, visible){
+        const rim1 = document.getElementById('rimReveal');
+        const rim2 = document.getElementById('rimRecall');
+        [rim1, rim2].forEach(rim=>{
+          if(!rim) return;
+          rim.style.backgroundImage = visible ? `url('${imgUrl}')` : '';
+          rim.style.display = visible ? 'block' : 'none';
+        });
+      }
+    
+      function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $(id).classList.add("active"); }
+      function keyCard(v,p){ return `${v}||${p}`; }
+      function capPronoun(p){ return p==="je" ? "Je" : p.charAt(0).toUpperCase()+p.slice(1); }
+      function setTries(n){ $("#tries").textContent = `· Essais (cette carte) : ${n}`; }
+      function canon(s){ return s.toLowerCase().replace(/['’]/g,'').replace(/\s+/g,'').trim(); }
+      function allowedPronouns(p){ if(p==="il/elle/on") return ["il","elle","on"]; if(p==="ils/elles") return ["ils","elles","ils/elles"]; return [p]; }
+      function matchesAnswer(card, input){
+        const a = card.answer, pr = card.pronoun, cIn = canon(input), cAns = canon(a);
+        if(cIn===cAns) return true;
+        for(const p of allowedPronouns(pr)){
+          const combo = canon(`${p} ${a}`);
+          if(pr==="je"){ const alt=canon(`j' ${a}`), alt2=canon(`j ${a}`); if(cIn===alt||cIn===alt2) return true; }
+          if(cIn===combo) return true;
+        }
+        return false;
+      }
+      function esc(s){ return s.replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+      function shake(selector){ const el=document.querySelector(selector); if(!el) return; el.style.transition='transform .08s'; el.style.transform='translateX(-6px)'; setTimeout(()=>{el.style.transform='translateX(6px)'},80); setTimeout(()=>{el.style.transform='translateX(0)'},160); }
+    
+      $("#nameForm").addEventListener("submit", (e)=>e.preventDefault());
+      $("#goName").addEventListener("click", handleGoName);
+      $("#initials").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); handleGoName(); } });
+    
+      function handleGoName(){
+        const v = $("#initials").value.trim().toUpperCase();
+        if(!v){ shake("#rootPanel"); return; }
+        student.initials = v.slice(0,3);
+        updateStatus();
+        show("#screen-verbs");
+      }
+    
+      const chips = VERB_NAMES.map(name=>{
+        const span = document.createElement("span");
+        span.className = "chip"; span.textContent = name; span.tabIndex = 0;
+        span.addEventListener("click", ()=>{
+          if(selectedVerbs.has(name)){ selectedVerbs.delete(name); span.classList.remove("active"); }
+          else { selectedVerbs.add(name); span.classList.add("active"); }
+        });
+        return span;
+      });
+      const wrapChips = $("#verbChips"); chips.forEach(c=>wrapChips.appendChild(c));
+      $("#backToName").addEventListener("click", ()=>show("#screen-name"));
+    
+      $("#goVerbs").addEventListener("click", ()=>{
+        if(selectedVerbs.size===0){ shake("#rootPanel"); return; }
+        buildCards(); show("#screen-train"); triesCurrent=0; setTries(triesCurrent); askNextNewCard();
+      });
+    
+      let gridCells = new Map();
+      function buildCards(){
+        allCards=[]; doneCount=0; turn=0; currentCard=null; turnQueue=[];
+        for(const v of VERB_NAMES){
+          if(!selectedVerbs.has(v)) continue;
+          for(const p of PRONOUNS){
+            const ans = CONJ[v][p];
+            const display = (p==="je" && v==="avoir") ? "J’" : (p==="je" ? "Je" : capPronoun(p));
+            const prompt = `${display} [${v.toUpperCase()}]`;
+            allCards.push({
+              verb:v, pronoun:p, prompt, answer:ans,
+              removed:false,
+              errorsCount:0,
+              iterationsGoal:1, // 1 succès pour valider les cartes propres
+              iterationsDone:0,
+              currentGap:0,
+              nextEligible:0,
+              errors:[]
+            });
+          }
+        }
+        totalNeeded = allCards.length;
+        renderGrid(); updateStatus();
+      }
+      function updateStatus(){
+        $("#status").textContent = `Élève: ${student.initials||"-"} — Validées: ${doneCount}/${totalNeeded}`;
+        $("#bar").style.width = ((doneCount/Math.max(1,totalNeeded))*100).toFixed(2)+"%";
+      }
+    
+      /**
+       * Logique de sélection des cartes pour la répétition espacée.
+       * La correction principale est ici.
+       * @returns {Object|null} La prochaine carte à jouer, ou null si l'activité est finie.
+       */
+      function chooseNextCard(){
+        // 1. Priorité : la file d'attente de cartes éligibles au tour actuel
+        if(turnQueue.length > 0) return turnQueue.shift();
+    
+        // 2. Sélection globale
+        let readyCards = allCards.filter(c => !c.removed && c.nextEligible <= turn);
+        
+        if (readyCards.length > 0) {
+          // 2a. On prend en priorité TOUTES les cartes qui ont des erreurs et qui sont éligibles
+          let errorCardsReady = readyCards.filter(c => c.errorsCount > 0)
+            .sort((a, b) => b.errorsCount - a.errorsCount); // Prioriser les plus grandes erreurs
+    
+          if (errorCardsReady.length > 0) {
+            // Ajouter TOUTES ces cartes erronées éligibles à la queue (pour passage consécutif)
+            turnQueue = errorCardsReady;
+            return turnQueue.shift(); // On prend la première
+          }
+          
+          // 2b. Sinon, choisir une carte "propre" (errorsCount === 0) au hasard
+          let cleanCardsReady = readyCards.filter(c => c.errorsCount === 0);
+          if(cleanCardsReady.length > 0) {
+            return randPick(cleanCardsReady);
+          }
+        }
+    
+        // 3. Si aucune carte n'est prête (toutes sont dans le futur)
+        let unremoved = allCards.filter(c => !c.removed);
+    
+        if (unremoved.length > 0) {
+          // 3a. Trouver la carte qui devient éligible le plus tôt.
+          let nextCard = unremoved.reduce((minCard, card) => {
+            return (!minCard || (card.nextEligible < minCard.nextEligible)) ? card : minCard;
+          }, null);
+    
+          // 3b. Avancer le compteur 'turn' pour que cette carte devienne immédiatement disponible
+          if (nextCard && nextCard.nextEligible > turn) {
+            turn = nextCard.nextEligible; 
+            // Une fois le tour avancé, on refait la sélection (récursif pour peupler la queue si nécessaire)
+            return chooseNextCard();
+          }
+        }
+        
+        // 4. Toutes les cartes sont validées ou l'activité est finie.
+        return null;
+      }
+    
+      function askNextNewCard(){ 
+          const next=chooseNextCard(); 
+          currentCard=next||null; 
+          if(!currentCard){
+            // Si plus de carte (tout est validé), on procède à la finale
+            if (allCards.every(c => c.removed)) proceed();
+            return;
+          }
+          // N'incrémente le tour que si la queue était vide ou si on a sélectionné une nouvelle carte
+          if(turnQueue.length === 0) turn++;
+    
+          renderCurrentPrompt(); 
+      }
+    
+      function renderCurrentPrompt(){ 
+          $("#prompt").textContent=currentCard?currentCard.prompt:"—"; 
+          $("#feedback").textContent=""; 
+          const input=$("#answer"); 
+          input.value=""; 
+          input.focus(); 
+          triesCurrent=0; 
+          setTries(triesCurrent); 
+          mascotEl.src=MASCOT_DEFAULT; 
+      }
+    
+      function renderCellPotions(container, count, full){
+        container.innerHTML='';
+        const wrap=document.createElement('div'); wrap.className='potions';
+        count=Math.max(1,count||1); full=Math.max(0,Math.min(full||0,count));
+        for(let i=0;i<count;i++){
+          const d=document.createElement('div'); d.className='potion'+(i<full?' full':'');
+          d.style.backgroundImage = `url('${POTION_IMG}')`;
+          wrap.appendChild(d);
+        }
+        container.appendChild(wrap);
+      }
+      function renderGrid(){
+        gridCells.clear();
+        const tbl=$("#grid"); tbl.innerHTML="";
+        const selected = Object.keys(CONJ).filter(v=>selectedVerbs.has(v));
+        const thead=document.createElement("thead"), trh=document.createElement("tr");
+        const th0=document.createElement("th"); th0.textContent="Pronoms / Verbes"; trh.appendChild(th0);
+        for(const v of selected){ const th=document.createElement("th"); th.textContent=v; trh.appendChild(th); }
+        thead.appendChild(trh); tbl.appendChild(thead);
+        const tbody=document.createElement("tbody");
+        for(const p of PRONOUNS){
+          const tr=document.createElement("tr"); const th=document.createElement("th"); th.textContent=p; tr.appendChild(th);
+          for(const v of selected){
+            const td=document.createElement("td");
+            const cell=document.createElement("div"); cell.className="cell pending";
+            const pot=document.createElement("div"); renderCellPotions(pot,1,0);
+            cell.appendChild(pot);
+            td.appendChild(cell); tr.appendChild(td);
+            gridCells.set(keyCard(v,p), pot);
+          }
+          tbody.appendChild(tr);
+        }
+        tbl.appendChild(tbody);
+      }
+      function updateCellVisuals(card){
+        const pot = gridCells.get(keyCard(card.verb, card.pronoun));
+        if(!pot) return;
+        if(card.removed){
+          renderCellPotions(pot, 1, 1);
+        }else if(card.errorsCount>0){
+          // Objectif: Le nombre de potions est dynamique (errorsCount + 1)
+          renderCellPotions(pot, card.iterationsGoal, card.iterationsDone);
+        }else{
+          // Carte propre
+          renderCellPotions(pot, 1, 0);
+        }
+      }
+    
+      const revealModal=$("#revealModal"), revTyped=$("#revTyped"), revCorrect=$("#revCorrect"), revOk=$("#revOk");
+      const recallModal=$("#recallModal"), recInput=$("#recInput"), recPrompt=$("#recPrompt"), recValidate=$("#recValidate");
+      let afterRecall = null;
+    
+      function prettyCorrect(card){
+        const pr = card.pronoun==="je" ? "Je" :
+                   card.pronoun==="il/elle/on" ? "Il/elle/on" :
+                   card.pronoun==="ils/elles" ? "Ils/elles" : capPronoun(card.pronoun);
+        return `${pr} ${card.answer}`;
+      }
+      function currentContextPrompt(){
+        const card = currentIsFinal ? finalList[finalIndex] : currentCard;
+        return card ? card.prompt : "";
+      }
+    
+      function openReveal(userText, correctText, next){
+        revTyped.innerHTML = `Tu as écrit : <span class="bad">${esc(userText)}</span>`;
+        revCorrect.innerHTML = `La bonne réponse est : <span class="good">${esc(correctText)}</span>`;
+        revealModal.classList.add("show");
+        afterRecall = next || null;
+        setTimeout(()=>revOk.focus(),30); 
+      }
+      revOk.addEventListener("click", ()=>{
+        revealModal.classList.remove("show");
+        setModalRim('', false);
+        recInput.value = "";
+        recPrompt.textContent = currentContextPrompt();
+        recallModal.classList.add("show");
+        setTimeout(()=>recInput.focus(),30);
+      });
+      // ÉCOUTEUR CLAVIER 1 : Modale Révélation (Bouton "J'ai mémorisé")
+      revOk.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          revOk.click();
+        }
+      });
+    
+    
+      function openRecall(next){
+        recInput.value=""; recPrompt.textContent = currentContextPrompt();
+        recallModal.classList.add("show");
+        afterRecall = next || null;
+        setTimeout(()=>recInput.focus(),30);
+      }
+      recValidate.addEventListener("click", ()=>{
+        const val = recInput.value;
+        const card = currentIsFinal ? finalList[finalIndex] : currentCard;
+        if(matchesAnswer(card, val)){
+          recallModal.classList.remove("show");
+          setModalRim('', false);
+          if(typeof afterRecall === "function") afterRecall();
+        } else {
+          recallModal.classList.remove("show");
+          openReveal(val, prettyCorrect(card), afterRecall);
+          setModalRim(randPick(MASCOT_KO), true);
+        }
+      });
+      // ÉCOUTEUR CLAVIER 2 : Modale Rappel (Champ de saisie)
+      recInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            recValidate.click(); 
+        }
+      });
+    
+    
+      document.getElementById("validate").addEventListener("click", onValidate);
+      document.getElementById("answer").addEventListener("keydown", e=>{ if(e.key==="Enter") onValidate(); });
+    
+      function onValidate(){
+        if(!currentCard) return;
+        const raw = $("#answer").value;
+    
+        if(matchesAnswer(currentCard, raw)){
+          $("#feedback").innerHTML = `<span class="ok">Correct.</span>`;
+          const okImg = randPick(MASCOT_OK);
+          mascotEl.src = okImg;
+          playSound(randPick(SOUND_OK));
+          showFxWithMascot(okImg);
+    
+          // --- LOGIQUE DE SUCCÈS (RÉPÉTITION ESPACÉE) ---
+          if(currentCard.errorsCount===0){
+            // 1. Succès sur carte 'propre' (Validée immédiatement)
+            validateCard(currentCard);
+          } else {
+            // 2. Succès sur carte erronée
+            currentCard.iterationsDone++;
+            
+            if(currentCard.iterationsDone >= currentCard.iterationsGoal){
+              // 2a. Objectif atteint (Validée après N succès)
+              validateCard(currentCard);
+            } else {
+              // 2b. Réussite partielle : Gap de 4 tours (revient au tour + 4)
+              currentCard.nextEligible = turn + 4;
+            }
+          }
+          // ---------------------------------------------
+    
+          updateCellVisuals(currentCard);
+          triesCurrent=0; setTries(triesCurrent);
+          proceed();
+        } else {
+          // --- LOGIQUE D'ÉCHEC (RÉPÉTITION IMMÉDIATE) ---
+          recordError(currentCard, raw);
+          
+          // Échec: revient au tour actuel + 2 (gap court pour re-vérifier)
+          currentCard.nextEligible = turn + 2;
+          // ---------------------------------------------
+    
+          $("#feedback").textContent = "";
+    
+          const koImg = randPick(MASCOT_KO);
+          mascotEl.src = koImg;
+          playSound(randPick(SOUND_KO));
+          setModalRim(koImg, true);
+    
+          // Ouvre la modale de révélation, puis avance au prochain mot
+          openReveal(raw, prettyCorrect(currentCard), ()=>{ proceed(); });
+          updateCellVisuals(currentCard);
+          triesCurrent++; setTries(triesCurrent);
+        }
+      }
+    
+      function recordError(card, raw){
+        card.errorsCount++;
+        card.errors.push(raw.trim());
+        // Objectif dynamique: Le nombre de succès requis est égal au nombre d'erreurs + 1.
+        card.iterationsGoal = card.errorsCount + 1;
+        card.iterationsDone = 0; // Réinitialise la progression de mémorisation après une erreur
+      }
+    
+      function validateCard(card){
+        if(card.removed) return;
+        card.removed=true;
+        doneCount++; updateStatus();
+      }
+    
+      function proceed(){
+        if(doneCount>=totalNeeded){ startFinalPhase(); return; }
+        askNextNewCard();
+      }
+    
+      document.getElementById("finalValidate").addEventListener("click", onValidateFinal);
+      // ÉCOUTEUR CLAVIER 3 : Contrôle Final (Champ de saisie)
+      document.getElementById("finalAnswer").addEventListener("keydown", e=>{ if(e.key==="Enter") onValidateFinal(); });
+    
+      function startFinalPhase(){
+        finalList = allCards.filter(c=>c.errorsCount>0);
+        currentIsFinal = true;
+        if(finalList.length===0){ renderReport(true); return; }
+        finalIndex=0;
+        document.getElementById("finalLegend").textContent="Tu vas revoir uniquement les cartes sur lesquelles tu as fait au moins une erreur.";
+        show("#screen-final"); updateFinalBar(); renderFinalPrompt();
+        const fa=$("#finalAnswer"); fa.value=""; fa.focus();
+      }
+      function renderFinalPrompt(){
+        const c=finalList[finalIndex];
+        document.getElementById("finalPrompt").textContent=c.prompt;
+        document.getElementById("finalFeedback").textContent="";
+        mascotEl.src=MASCOT_DEFAULT;
+      }
+      function updateFinalBar(){
+        document.getElementById("finalBar").style.width=((finalIndex/Math.max(1,finalList.length))*100).toFixed(2)+"%";
+      }
+    
+      function onValidateFinal(){
+        const card=finalList[finalIndex]; const val=document.getElementById("finalAnswer").value;
+    
+        if(matchesAnswer(card,val)){
+          document.getElementById("finalFeedback").innerHTML=`<span class="ok">Correct.</span>`;
+          document.getElementById("finalAnswer").value="";
+          const okImg = randPick(MASCOT_OK);
+          mascotEl.src = okImg;
+          playSound(randPick(SOUND_OK));
+          showFxWithMascot(okImg);
+    
+          finalIndex++; updateFinalBar();
+          if(finalIndex>=finalList.length){ currentIsFinal=false; renderReport(false); return; }
+          renderFinalPrompt(); document.getElementById("finalAnswer").focus();
+        } else {
+          recordError(card, val);
+          const koImg = randPick(MASCOT_KO);
+          mascotEl.src = koImg;
+          playSound(randPick(SOUND_KO));
+          setModalRim(koImg, true);
+    
+          openReveal(val, prettyCorrect(card), ()=>{
+            const fa = document.getElementById("finalAnswer");
+            fa.value=""; fa.focus();
+          });
+        }
+      }
+    
+      function renderReport(skippedFinal){
+        show("#screen-report");
+        const A=[],B=[],C=[];
+        for(const c of allCards){ if(!selectedVerbs.has(c.verb)) continue; if(c.errorsCount===0) A.push(c); else if(c.errorsCount<=2) B.push(c); else C.push(c); }
+        const rep=[];
+        rep.push(`<div><strong>Élève :</strong> ${esc(student.initials||"")}</div>`);
+        rep.push(`<div><strong>Cartes vues :</strong> ${totalNeeded} — <strong>Validées :</strong> ${doneCount}</div>`);
+        rep.push(`<h3>A. Verbes conjugués que je connais</h3>`);
+        rep.push(A.length?`<p class="good">${A.map(c=>`<strong>${esc((c.pronoun==="je"&&c.verb==="avoir"?"J’":(c.pronoun==="je"?"Je":c.pronoun.charAt(0).toUpperCase()+c.pronoun.slice(1)))+" "+c.answer)}</strong>`).join(", ")}</p>`:`<p>—</p>`);
+        const lines=(arr)=>arr.length?arr.map(c=>`<div class="line">${esc(c.verb)} — ${esc(c.pronoun)} : ${c.errors.map(w=>`<s>${esc(w)}</s>`).join(" , ")} &nbsp;→&nbsp; <strong>${esc((c.pronoun==="je"&&c.verb==="avoir"?"J’":(c.pronoun==="je"?"Je":c.pronoun.charAt(0).toUpperCase()+c.pronoun.slice(1)))+" "+c.answer)}</strong></div>`).join(""):`<p>—</p>`;
+        rep.push(`<h3>B. Verbes conjugués que je dois encore réviser (≤ 2 erreurs)</h3>`); rep.push(lines(B));
+        rep.push(`<h3>C. Verbes conjugués que je dois (ré)apprendre (> 2 erreurs)</h3>`); rep.push(lines(C));
+        document.getElementById("report").innerHTML = rep.join("\n");
+        document.getElementById("scoreLine").textContent = skippedFinal ? `Bravo ${student.initials} ! Aucune carte à revoir au final.` : `Bravo ${student.initials} ! Contrôle final terminé.`;
+        document.getElementById("download").onclick = ()=>{
+          const plain = document.getElementById("report").innerText.replace(/\n{3,}/g,"\n\n");
+          const blob = new Blob([plain],{type:"text/plain;charset=utf-8"}); const url=URL.createObjectURL(blob);
+          const a=document.createElement("a"); a.href=url; a.download=`rapport_${(student.initials||"eleve").toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_\-]/g,'')}.txt`;
+          document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
+        };
+        document.getElementById("restart").onclick=()=>{ selectedVerbs.clear(); document.querySelectorAll("#verbChips .chip").forEach(c=>c.classList.remove("active")); show("#screen-verbs"); };
+      }
+    })();
+    </script>
+</body>
+</html>
